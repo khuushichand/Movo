@@ -1,9 +1,17 @@
 import express from 'express';
-import { createPlan } from '../controllers/planController.js';
+import { createPlan, getPlans, getPlanById, updatePlan, deletePlan } from '../controllers/planController.js';
 
 const router = express.Router();
 
-// Define route (maps to POST /api/v1/plans when mounted)
+// Define routes (maps to /api/v1/plans when mounted)
 router.post('/', createPlan);
+router.get('/', getPlans);
+router.get('/:id', getPlanById);
+router.patch('/:id', updatePlan);
+router.delete('/:id', deletePlan);
 
 export default router;
+
+
+
+

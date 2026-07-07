@@ -20,6 +20,16 @@ const CreatePlan = () => {
   const locationState = useLocation();
   const passedExperience = locationState.state?.experience;
 
+  // Form states
+  const [title, setTitle] = useState('');
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
+  const [budgetString, setBudgetString] = useState('');
+  const [location, setLocation] = useState('');
+  const [description, setDescription] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
   const [experiences, setExperiences] = useState(() => {
     if (passedExperience) {
       const exists = INITIAL_EXPERIENCES.some((exp) => exp.id === passedExperience.id);
@@ -38,6 +48,61 @@ const CreatePlan = () => {
     const name = prompt("Enter friend's name:");
     if (name && name.trim()) {
       setFriends([...friends, name.trim()]);
+    }
+  };
+
+  const handleSubmit = async (e, customStatus = 'draft') => {
+    if (e) e.preventDefault();
+    
+    if (!title.trim() || !location.trim() || !date) {
+      setError('Plan Name, Location, and Date are required.');
+      return;
+    }
+    
+    setLoading(true);
+    setError('');
+
+    try {
+      // Parse budget value into a number
+      const numericBudget = parseInt(budgetString.replace(/[^0-9]/g, ''), 10) || 0;
+      
+      // Combine date and time
+      let dateObj = null;
+      if (date) {
+        dateObj = time ? new Date(`${date}T${time}`) : new Date(date);
+      }
+
+      const body = {
+        title: title.trim(),
+        date: dateObj,
+        budget: numericBudget,
+        location: location.trim(),
+        description: description.trim(),
+        participants: friends,
+        experiences,
+        status: customStatus
+      };
+
+      const response = await fetch('http://localhost:5000/api/v1/plans', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+
+      const resData = await response.json();
+
+      if (!response.ok || !resData.success) {
+        throw new Error(resData.message || 'Failed to create plan.');
+      }
+
+      // Successful creation, redirect to /planning/:id using the plan _id
+      navigate(`/planning/${resData.data._id}`);
+    } catch (err) {
+      setError(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -63,15 +128,22 @@ const CreatePlan = () => {
 
         {/* Form Card */}
         <section className="bg-white rounded-[28px] p-8 md:p-10 border border-stone-150/40 shadow-sm mb-12">
-          <form className="flex flex-col gap-6" onSubmit={(e) => e.preventDefault()}>
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-150 text-red-700 text-xs rounded-xl font-sans font-medium">
+              {error}
+            </div>
+          )}
+          <form className="flex flex-col gap-6" onSubmit={(e) => handleSubmit(e, 'draft')}>
             
             {/* Plan Name */}
             <div>
               <label className="text-[10px] uppercase tracking-wider font-bold text-stone-400 block mb-2">
-                Plan Name
+                Plan Name *
               </label>
               <input 
                 type="text" 
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g., Summer Escape, Sunday Brunch Crawl"
                 className="w-full bg-[#F8F6F2]/30 text-stone-900 placeholder-stone-400 font-light text-sm px-5 py-3.5 rounded-xl border border-stone-200/60 focus:outline-none focus:border-stone-400 transition-colors duration-300"
               />
@@ -81,10 +153,12 @@ const CreatePlan = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="text-[10px] uppercase tracking-wider font-bold text-stone-400 block mb-2">
-                  Date
+                  Date *
                 </label>
                 <input 
                   type="date" 
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
                   className="w-full bg-[#F8F6F2]/30 text-stone-900 font-light text-sm px-5 py-3.5 rounded-xl border border-stone-200/60 focus:outline-none focus:border-stone-400 transition-colors duration-300"
                 />
               </div>
@@ -94,6 +168,8 @@ const CreatePlan = () => {
                 </label>
                 <input 
                   type="time" 
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
                   className="w-full bg-[#F8F6F2]/30 text-stone-900 font-light text-sm px-5 py-3.5 rounded-xl border border-stone-200/60 focus:outline-none focus:border-stone-400 transition-colors duration-300"
                 />
               </div>
@@ -107,16 +183,20 @@ const CreatePlan = () => {
                 </label>
                 <input 
                   type="text" 
-                  placeholder="e.g., ₹1000 pp"
+                  value={budgetString}
+                  onChange={(e) => setBudgetString(e.target.value)}
+                  placeholder="e.g., 1000"
                   className="w-full bg-[#F8F6F2]/30 text-stone-900 placeholder-stone-400 font-light text-sm px-5 py-3.5 rounded-xl border border-stone-200/60 focus:outline-none focus:border-stone-400 transition-colors duration-300"
                 />
               </div>
               <div>
                 <label className="text-[10px] uppercase tracking-wider font-bold text-stone-400 block mb-2">
-                  Location
+                  Location *
                 </label>
                 <input 
                   type="text" 
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
                   placeholder="e.g., Bandra West"
                   className="w-full bg-[#F8F6F2]/30 text-stone-900 placeholder-stone-400 font-light text-sm px-5 py-3.5 rounded-xl border border-stone-200/60 focus:outline-none focus:border-stone-400 transition-colors duration-300"
                 />
@@ -130,6 +210,8 @@ const CreatePlan = () => {
               </label>
               <textarea 
                 rows="4"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
                 placeholder="Share notes, outline ideas, or write a welcoming description for your friends..."
                 className="w-full bg-[#F8F6F2]/30 text-stone-900 placeholder-stone-400 font-light text-sm px-5 py-3.5 rounded-xl border border-stone-200/60 focus:outline-none focus:border-stone-400 transition-colors duration-300 resize-none"
               />
@@ -220,6 +302,7 @@ const CreatePlan = () => {
         
         {/* Cancel */}
         <button 
+          onClick={() => navigate('/discover')}
           className="px-5 py-3 rounded-full hover:bg-stone-50 text-stone-550 hover:text-stone-900 text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer"
         >
           Cancel
@@ -227,17 +310,20 @@ const CreatePlan = () => {
 
         {/* Save Draft */}
         <button 
-          className="px-5 py-3 rounded-full hover:bg-stone-50 text-stone-700 text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-1.5 border border-stone-100"
+          onClick={(e) => handleSubmit(e, 'draft')}
+          disabled={loading}
+          className="px-5 py-3 rounded-full hover:bg-stone-50 text-stone-700 text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-1.5 border border-stone-100 disabled:opacity-50"
         >
-          <span>Save Draft</span>
+          <span>{loading ? 'Saving...' : 'Save Draft'}</span>
         </button>
 
         {/* Create Plan */}
         <button 
-          onClick={() => navigate('/planning')}
-          className="px-6 py-3 rounded-full bg-[#4A6B82] hover:bg-[#3d596d] text-white text-xs font-bold uppercase tracking-wider transition-all shadow-md shadow-[#4A6B82]/20 cursor-pointer"
+          onClick={(e) => handleSubmit(e, 'active')}
+          disabled={loading}
+          className="px-6 py-3 rounded-full bg-[#4A6B82] hover:bg-[#3d596d] text-white text-xs font-bold uppercase tracking-wider transition-all shadow-md shadow-[#4A6B82]/20 cursor-pointer disabled:opacity-50"
         >
-          Create Plan
+          {loading ? 'Creating...' : 'Create Plan'}
         </button>
 
       </div>
@@ -247,3 +333,4 @@ const CreatePlan = () => {
 };
 
 export default CreatePlan;
+

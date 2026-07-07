@@ -30,6 +30,7 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/discover" element={<Discover />} />
           <Route path="/planning" element={<PlanningSession />} />
+          <Route path="/planning/:id" element={<PlanningSession />} />
           <Route path="/create-plan" element={<CreatePlan />} />
           <Route path="/experience/:id" element={<ExperienceDetails />} />
           <Route path="/final-itinerary" element={<FinalItinerary />} />
