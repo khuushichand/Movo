@@ -8,62 +8,39 @@ import VotingCard from '../components/VotingCard';
 import GroupProgress from '../components/GroupProgress';
 import VoteSummary from '../components/VoteSummary';
 import AIRecommendationCard from '../components/AIRecommendationCard';
+import usePlan from '../hooks/usePlan';
+
 
 const PlanningSession = () => {
   const navigate = useNavigate();
   const { id } = useParams();
 
+  const { plan, loading, error } = usePlan(id);
+
   const [friends, setFriends] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [activities, setActivities] = useState([]);
-  const [plan, setPlan] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!id) {
-      setError('No plan ID specified.');
-      setLoading(false);
-      return;
+    if (plan) {
+      setFriends(plan.participants || []);
+
+      const mapped = (plan.experiences || []).map((exp, idx) => ({
+        id: exp.id || `exp-${idx}`,
+        title: exp.title,
+        time: exp.time || "Flexible",
+        addedBy: exp.addedBy || "Group",
+        image: exp.image || "https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?auto=format&fit=crop&w=800&q=80",
+        location: exp.location || plan.location,
+        budget: exp.price || `₹${plan.budget} pp`,
+        votes: exp.votes || { love: 1, maybe: 0, pass: 0 },
+        userVote: exp.userVote || null
+      }));
+
+      setActivities(mapped);
     }
+  }, [plan]);
 
-    const fetchPlan = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const response = await fetch(`http://localhost:5000/api/v1/plans/${id}`);
-        const resData = await response.json();
-
-        if (!response.ok || !resData.success) {
-          throw new Error(resData.message || 'Plan not found.');
-        }
-
-        setPlan(resData.data);
-        setFriends(resData.data.participants || []);
-
-        const mapped = (resData.data.experiences || []).map((exp, idx) => ({
-          id: exp.id || `exp-${idx}`,
-          title: exp.title,
-          time: exp.time || "Flexible",
-          addedBy: exp.addedBy || "Group",
-          image: exp.image || "https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?auto=format&fit=crop&w=800&q=80",
-          location: exp.location || resData.data.location,
-          budget: exp.price || `₹${resData.data.budget} pp`,
-          votes: exp.votes || { love: 1, maybe: 0, pass: 0 },
-          userVote: exp.userVote || null
-        }));
-
-        setActivities(mapped);
-      } catch (err) {
-        setError(err.message || 'Failed to fetch plan.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPlan();
-  }, [id]);
 
   const handleToggleFriend = (name) => {
     if (friends.includes(name)) {
@@ -158,13 +135,19 @@ const PlanningSession = () => {
             <span className="uppercase tracking-[0.25em] text-[10px] md:text-xs font-bold text-stone-400 block mb-1">
               Group Collaboration • {plan.location}
             </span>
-            <h1 className="font-serif text-3xl md:text-5xl font-light text-stone-950 tracking-tight">
+            <h1 className="font-serif text-3xl md:text-5xl font-light text-stone-950 tracking-tight mb-2">
               {plan.title}
             </h1>
+            {plan.description && (
+              <p className="font-sans text-stone-550 font-light text-sm md:text-base mb-3 max-w-lg">
+                {plan.description}
+              </p>
+            )}
             <span className="font-sans text-stone-500 font-light text-sm md:text-base mt-1 block">
               {new Date(plan.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })} • Budget: ₹{plan.budget}
             </span>
           </div>
+
           
           <div className="flex flex-col md:items-end gap-2.5">
             <span className="text-[10px] uppercase tracking-wider font-bold text-stone-400">

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import ExperienceCard from '../components/ExperienceCard';
+import { createPlan } from '../services/api';
+
 
 const INITIAL_EXPERIENCES = [
   {
@@ -83,19 +85,8 @@ const CreatePlan = () => {
         status: customStatus
       };
 
-      const response = await fetch('http://localhost:5000/api/v1/plans', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
-      });
+      const resData = await createPlan(body);
 
-      const resData = await response.json();
-
-      if (!response.ok || !resData.success) {
-        throw new Error(resData.message || 'Failed to create plan.');
-      }
 
       // Successful creation, redirect to /planning/:id using the plan _id
       navigate(`/planning/${resData.data._id}`);
